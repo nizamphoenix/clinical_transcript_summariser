@@ -3,7 +3,7 @@ name = "template-repo"
 version = "0.1.0"
 description = "A template repo serving as a baseline for other repos"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
     "ollama>=0.6.1",
 ]
@@ -44,7 +44,7 @@ build-backend = "hatchling.build"
 cache-dir = "~/.cache/ruff"
 indent-width = 4
 line-length = 80
-target-version = "py313"
+target-version = "py312"
 fix = true
 lint.select = [
     "E4",
