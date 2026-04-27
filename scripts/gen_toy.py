@@ -13,7 +13,7 @@ import argparse
 import json
 from pathlib import Path
 
-from cts.toy_data import build_toy
+from src.toy_data import build_toy
 
 
 def main() -> None:
