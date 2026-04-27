@@ -3,7 +3,7 @@ name = "clinical-transcript-summariser"
 version = "0.1.0"
 description = "A repo for building a transcript summariser"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "ollama>=0.6.1",
 ]
@@ -50,13 +50,13 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cts"]
+packages = ["src"]
 
 [tool.ruff]
 cache-dir = "~/.cache/ruff"
 indent-width = 4
 line-length = 80
-target-version = "py311"
+target-version = "py312"
 fix = true
 lint.select = [
     "E4",
