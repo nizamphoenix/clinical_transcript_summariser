@@ -2,3 +2,9 @@ requirements.txt
 *.pyc
 __pycache__/
 .venv/
+data/
+outputs/
+*.gguf
+.kaggle/
+wandb/
+*.ipynb_checkpoints/
