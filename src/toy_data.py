@@ -467,23 +467,36 @@ def _random_slots(rng: random.Random) -> dict:
 
 
 def build_toy(
-    n: int = 100, seed: int = 0, max_attempts: int = 10000
+    n: int = 100,
+    seed: int = 0,
+    max_attempts: int = 10000,
+    allowed_shape_indices: list[int] | None = None,
 ) -> list[dict]:
     """Build n unique (transcript, soap) pairs deterministically.
 
     Returns a list of dicts: {"transcript": str, "soap": dict}.
 
+    If `allowed_shape_indices` is set, only those shape templates are sampled.
+    Used to build held-out eval sets that exercise shapes never seen during
+    training (true generalisation test).
+
     Raises RuntimeError if n unique transcripts cannot be produced within
     max_attempts random samples.
     """
     rng = random.Random(seed)
+    if allowed_shape_indices is None:
+        shapes = SHAPES
+    else:
+        shapes = [SHAPES[i] for i in allowed_shape_indices]
+        if not shapes:
+            raise ValueError("allowed_shape_indices must be non-empty")
     seen: set[str] = set()
     out: list[dict] = []
 
     attempts = 0
     while len(out) < n and attempts < max_attempts:
         attempts += 1
-        shape = rng.choice(SHAPES)
+        shape = rng.choice(shapes)
         slots = _random_slots(rng)
         transcript, soap = shape(slots)
         if transcript in seen:
