@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "template": "referral_a",
+    "length": "medium",
+    "length_desc": "10-15 turns total, includes history-taking and exam",
+    "issues": 2,
+    "style": "conversational",
+    "fillers": "low"
+  },
+  "transcript": "HCP: patient is Sarah Jenkins, 45 years old\nHCP: she presents with intermittent sharp abdominal pain in the right lower quadrant\nHCP: pain started 3 days ago and worsens after eating\nHCP: associated with nausea but no vomiting\nHCP: she has a history of irritable bowel syndrome\nHCP: currently taking omeprazole 20mg daily and simvastatin 40mg daily\nHCP: no known drug allergies\nHCP: physical exam shows tenderness at McBurney's point\nHCP: bowel sounds are normal\nHCP: please refer for surgical assessment to rule out appendicitis or other acute abdominal pathology",
+  "referral": {
+    "specialty": {
+      "text": "Surgery",
+      "evidence_span": "please refer for surgical assessment"
+    },
+    "patient": {
+      "text": "Sarah Jenkins, 45 years old",
+      "evidence_span": "patient is Sarah Jenkins, 45 years old"
+    },
+    "reason": {
+      "text": "intermittent sharp abdominal pain in right lower quadrant",
+      "evidence_span": "she presents with intermittent sharp abdominal pain in the right lower quadrant"
+    },
+    "history": [
+      {
+        "text": "irritable bowel syndrome",
+        "evidence_span": "she has a history of irritable bowel syndrome"
+      }
+    ],
+    "current_meds": [
+      {
+        "text": "omeprazole 20mg daily",
+        "evidence_span": "currently taking omeprazole 20mg daily"
+      },
+      {
+        "text": "simvastatin 40mg daily",
+        "evidence_span": "and simvastatin 40mg daily"
+      }
+    ],
+    "request": {
+      "text": "refer for surgical assessment to rule out appendicitis or other acute abdominal pathology",
+      "evidence_span": "please refer for surgical assessment to rule out appendicitis or other acute abdominal pathology"
+    }
+  }
+}

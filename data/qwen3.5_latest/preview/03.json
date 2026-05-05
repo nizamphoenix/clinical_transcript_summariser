@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "template": "referral_a",
+    "length": "short",
+    "length_desc": "5-8 turns total, focused single-issue visit",
+    "issues": 1,
+    "style": "terse",
+    "fillers": "low"
+  },
+  "transcript": "HCP: referral to Orthopaedics\nHCP: patient is James Chen, 45 years old\nHCP: he complains of persistent right knee pain\nHCP: pain started after a gardening accident two weeks ago\nHCP: history of previous meniscus repair in 2018\nHCP: taking ibuprofen 400mg three times daily for relief\nHCP: no known allergies\nHCP: please assess and refer for MRI",
+  "referral": {
+    "specialty": {
+      "text": "Orthopaedics",
+      "evidence_span": "Orthopaedics"
+    },
+    "patient": {
+      "text": "James Chen, 45 years old",
+      "evidence_span": "James Chen, 45 years old"
+    },
+    "reason": {
+      "text": "persistent right knee pain",
+      "evidence_span": "he complains of persistent right knee pain"
+    },
+    "history": [
+      {
+        "text": "gardening accident two weeks ago",
+        "evidence_span": "pain started after a gardening accident two weeks ago"
+      },
+      {
+        "text": "previous meniscus repair in 2018",
+        "evidence_span": "history of previous meniscus repair in 2018"
+      }
+    ],
+    "current_meds": [
+      {
+        "text": "ibuprofen 400mg three times daily",
+        "evidence_span": "taking ibuprofen 400mg three times daily for relief"
+      }
+    ],
+    "request": {
+      "text": "assess and refer for MRI",
+      "evidence_span": "please assess and refer for MRI"
+    }
+  }
+}

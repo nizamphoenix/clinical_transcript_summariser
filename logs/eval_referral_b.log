@@ -1,0 +1,14 @@
+Bulk generating: target=10 template=referral_b model=qwen3.5:latest seed=0 split=eval_zero_shot
+  [1/10] ok 35.7s (fail=0, eta=5min)
+  [2/10] ok 29.2s (fail=0, eta=4min)
+  [3/10] ok 25.6s (fail=0, eta=4min)
+  [4/10] ok 26.5s (fail=0, eta=3min)
+  [4/10] FAIL ungrounded_span: not in transcript: "my knee's been acting up... left one, it clicks... sore afterwards... hip's b..." (164.9s, fail=1)
+  [5/10] ok 54.4s (fail=1, eta=6min)
+  [6/10] ok 27.4s (fail=1, eta=4min)
+  [7/10] ok 93.9s (fail=1, eta=3min)
+  [8/10] ok 53.2s (fail=1, eta=2min)
+  [9/10] ok 36.8s (fail=1, eta=1min)
+  [10/10] ok 29.3s (fail=1, eta=0min)
+
+Done. 10/10 valid, 1 discarded. Output: data/qwen3.5_latest/eval_zero_shot.referral_b.jsonl

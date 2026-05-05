@@ -1,0 +1,136 @@
+{
+  "model": "qwen3.5:latest",
+  "temperature": 0.7,
+  "max_retries": 2,
+  "samples": [
+    {
+      "idx": 1,
+      "spec": {
+        "template": "soap",
+        "length": "short",
+        "length_desc": "5-8 turns total, focused single-issue visit",
+        "issues": 1,
+        "style": "terse",
+        "fillers": "low"
+      },
+      "status": "ok",
+      "attempts": [
+        "ungrounded_span: not in transcript: 'about two days ago after playing footy\\nPatient: no fever'",
+        "ok"
+      ],
+      "elapsed_sec": 60.61
+    },
+    {
+      "idx": 2,
+      "spec": {
+        "template": "soap",
+        "length": "medium",
+        "length_desc": "10-15 turns total, includes history-taking and exam",
+        "issues": 2,
+        "style": "conversational",
+        "fillers": "medium"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 44.19
+    },
+    {
+      "idx": 3,
+      "spec": {
+        "template": "referral_a",
+        "length": "short",
+        "length_desc": "5-8 turns total, focused single-issue visit",
+        "issues": 1,
+        "style": "terse",
+        "fillers": "low"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 30.57
+    },
+    {
+      "idx": 4,
+      "spec": {
+        "template": "referral_a",
+        "length": "medium",
+        "length_desc": "10-15 turns total, includes history-taking and exam",
+        "issues": 2,
+        "style": "conversational",
+        "fillers": "low"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 31.97
+    },
+    {
+      "idx": 5,
+      "spec": {
+        "template": "referral_b",
+        "length": "short",
+        "length_desc": "5-8 turns total, focused single-issue visit",
+        "issues": 1,
+        "style": "conversational",
+        "fillers": "medium"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 28.64
+    },
+    {
+      "idx": 6,
+      "spec": {
+        "template": "referral_b",
+        "length": "medium",
+        "length_desc": "10-15 turns total, includes history-taking and exam",
+        "issues": 1,
+        "style": "warm",
+        "fillers": "medium"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 36.21
+    },
+    {
+      "idx": 7,
+      "spec": {
+        "template": "mse",
+        "length": "short",
+        "length_desc": "5-8 turns total, focused single-issue visit",
+        "issues": 1,
+        "style": "conversational",
+        "fillers": "low"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 31.54
+    },
+    {
+      "idx": 8,
+      "spec": {
+        "template": "mse",
+        "length": "medium",
+        "length_desc": "10-15 turns total, includes history-taking and exam",
+        "issues": 1,
+        "style": "warm",
+        "fillers": "medium"
+      },
+      "status": "ok",
+      "attempts": [
+        "ok"
+      ],
+      "elapsed_sec": 38.15
+    }
+  ]
+}

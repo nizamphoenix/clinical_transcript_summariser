@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "template": "mse",
+    "length": "medium",
+    "length_desc": "10-15 turns total, includes history-taking and exam",
+    "issues": 1,
+    "style": "warm",
+    "fillers": "medium"
+  },
+  "transcript": "HCP: hello, thanks for coming in today, i'm dr lee\nPatient: hi, thanks for seeing me\nHCP: how have you been feeling since your last appointment\nPatient: honestly just terrible, i can't get out of bed much these days\nHCP: that sounds really hard, can you tell me a bit more about that\nPatient: yeah, i just drag myself up, the house feels huge and i have no energy\nHCP: and how has your mood been lately\nPatient: pretty flat, i don't feel happy or sad really, just empty\nHCP: does that emptiness feel different from before\nPatient: yeah, it's just a fog, nothing seems to matter anymore\nHCP: are you having any thoughts of hurting yourself or ending it all\nPatient: no not really, just the weight is too much to carry\nHCP: you seem quite quiet today, is that how you feel too\nPatient: yeah, my voice feels weak and i don't want to talk to anyone\nHCP: do you understand why you're here today\nPatient: i know i need help, i just don't know if anything will work",
+  "mse": {
+    "appearance": {
+      "text": null,
+      "evidence_span": null
+    },
+    "behaviour": {
+      "text": "psychomotor retardation, low energy",
+      "evidence_span": "i can't get out of bed much these days"
+    },
+    "speech": {
+      "text": "quiet, low volume",
+      "evidence_span": "my voice feels weak and i don't want to talk to anyone"
+    },
+    "mood": {
+      "text": "flat, empty, anhedonia",
+      "evidence_span": "pretty flat, i don't feel happy or sad really, just empty"
+    },
+    "affect": {
+      "text": null,
+      "evidence_span": null
+    },
+    "thought": {
+      "text": "rumination on burden, no SI",
+      "evidence_span": "just the weight is too much to carry"
+    },
+    "cognition": {
+      "text": "perceived lack of motivation",
+      "evidence_span": "nothing seems to matter anymore"
+    },
+    "insight": {
+      "text": "partial insight — aware needs help but doubtful of treatment",
+      "evidence_span": "i know i need help, i just don't know if anything will work"
+    }
+  }
+}

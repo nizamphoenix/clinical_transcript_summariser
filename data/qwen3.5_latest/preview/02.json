@@ -1,0 +1,60 @@
+{
+  "spec": {
+    "template": "soap",
+    "length": "medium",
+    "length_desc": "10-15 turns total, includes history-taking and exam",
+    "issues": 2,
+    "style": "conversational",
+    "fillers": "medium"
+  },
+  "transcript": "HCP: hello, whats bothering you today\nPatient: uh my knee hurts really bad like i fell over yesterday\nHCP: fell over or twisted it?\nPatient: probably twisted it but i slipped on a rug\nHCP: any swelling or bruising\nPatient: yeah there is some swelling and its pretty red\nHCP: any pain at rest\nPatient: yeah it hurts to put weight on it\nHCP: any history of gout or arthritis?\nPatient: no never had those issues\nHCP: ok lets have a look, seems quite swollen and red\nHCP: range of motion\nPatient: its stiff and i can't bend it much\nHCP: ok sounds like a knee sprain, maybe a bit of inflammation\nHCP: i'll give you some ibuprofen and a sling, keep it elevated\nHCP: come back tomorrow for a review",
+  "soap": {
+    "subjective": {
+      "chief_complaint": {
+        "text": "knee hurts",
+        "evidence_span": "my knee hurts"
+      },
+      "hpi": {
+        "text": "twisted knee, fell on rug, swelling, red, pain at rest, stiff",
+        "evidence_span": "probably twisted it but i slipped on a rug"
+      },
+      "pmh": [],
+      "meds": [],
+      "allergies": []
+    },
+    "objective": {
+      "exam": {
+        "text": "quite swollen and red, stiff, limited range of motion",
+        "evidence_span": "seems quite swollen and red"
+      }
+    },
+    "assessment": {
+      "problems": [
+        {
+          "name": "knee sprain",
+          "evidence_span": "knee sprain"
+        }
+      ]
+    },
+    "plan": {
+      "items": [
+        {
+          "action": "ibuprofen",
+          "evidence_span": "give you some ibuprofen"
+        },
+        {
+          "action": "sling",
+          "evidence_span": "sling"
+        },
+        {
+          "action": "keep elevated",
+          "evidence_span": "keep it elevated"
+        },
+        {
+          "action": "review tomorrow",
+          "evidence_span": "come back tomorrow for a review"
+        }
+      ]
+    }
+  }
+}

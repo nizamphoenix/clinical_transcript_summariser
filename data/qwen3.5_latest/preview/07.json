@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "template": "mse",
+    "length": "short",
+    "length_desc": "5-8 turns total, focused single-issue visit",
+    "issues": 1,
+    "style": "conversational",
+    "fillers": "low"
+  },
+  "transcript": "HCP: hi, can you tell me what brought you in today\nPatient: yeah, mostly just the panic attacks\nHCP: tell me about the last one\nPatient: it happened at the supermarket, my heart started pounding and i couldn't breathe\nHCP: and did you feel like you were going to die\nPatient: absolutely, i thought i was having a heart attack\nHCP: how long did it last for\nPatient: maybe five minutes, then i just sat down and it stopped\nHCP: you seem quite agitated right now, is that how you feel\nPatient: yeah, i can't sit still, i'm constantly checking my phone\nHCP: do you feel that anxiety is affecting your daily life\nPatient: yes, i've stopped going to work and avoiding the shops",
+  "mse": {
+    "appearance": {
+      "text": null,
+      "evidence_span": null
+    },
+    "behaviour": {
+      "text": "agitated, psychomotor hyperactivity, avoidance",
+      "evidence_span": "i can't sit still, i'm constantly checking my phone"
+    },
+    "speech": {
+      "text": null,
+      "evidence_span": null
+    },
+    "mood": {
+      "text": null,
+      "evidence_span": null
+    },
+    "affect": {
+      "text": null,
+      "evidence_span": null
+    },
+    "thought": {
+      "text": "cathapletic thoughts, fear of death",
+      "evidence_span": "i thought i was having a heart attack"
+    },
+    "cognition": {
+      "text": null,
+      "evidence_span": null
+    },
+    "insight": {
+      "text": null,
+      "evidence_span": null
+    }
+  }
+}

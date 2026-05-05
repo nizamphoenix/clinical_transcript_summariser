@@ -34,11 +34,16 @@ dev = [
     # Standard dev group
     {include-group = "lint"},
     {include-group = "viz"},
+    "gradio>=6.13.0",
     "ipykernel>=7.1.0",
     "ipython>=9.8.0",
     "marimo>=0.18.4",
     "py-spy>=0.4.1",
     "pytest>=9.0.2",
+]
+serve = [
+    "fastapi>=0.136.1",
+    "uvicorn>=0.40.0",
 ]
 
 [tool.uv]
@@ -85,7 +90,7 @@ line-ending = "auto"
 
 [tool.ty.src]
 include = ["src"]
-exclude = ["src/tests"]
+exclude = ["src/tests", "src/demo.py"]
 
 [tool.ty.rules]
 unused-ignore-comment = "warn"
@@ -93,3 +98,5 @@ redundant-cast = "ignore"
 possibly-missing-attribute = "error"
 possibly-missing-import = "error"
 index-out-of-bounds = "error"
+# REGISTRY values are Any-typed dicts; false positives on index/arg checks
+invalid-argument-type = "ignore"

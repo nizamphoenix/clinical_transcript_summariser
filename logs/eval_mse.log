@@ -1,0 +1,13 @@
+Bulk generating: target=10 template=mse model=qwen3.5:latest seed=0 split=eval_zero_shot
+  [1/10] ok 40.8s (fail=0, eta=6min)
+  [2/10] ok 31.6s (fail=0, eta=5min)
+  [3/10] ok 31.5s (fail=0, eta=4min)
+  [4/10] ok 33.8s (fail=0, eta=3min)
+  [5/10] ok 31.8s (fail=0, eta=3min)
+  [6/10] ok 69.3s (fail=0, eta=3min)
+  [7/10] ok 34.8s (fail=0, eta=2min)
+  [8/10] ok 32.9s (fail=0, eta=1min)
+  [9/10] ok 31.1s (fail=0, eta=1min)
+  [10/10] ok 40.7s (fail=0, eta=0min)
+
+Done. 10/10 valid, 0 discarded. Output: data/qwen3.5_latest/eval_zero_shot.mse.jsonl

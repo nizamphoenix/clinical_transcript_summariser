@@ -1,0 +1,60 @@
+{
+  "spec": {
+    "template": "soap",
+    "length": "short",
+    "length_desc": "5-8 turns total, focused single-issue visit",
+    "issues": 1,
+    "style": "terse",
+    "fillers": "low"
+  },
+  "transcript": "HCP: hello, whats wrong\nPatient: knee hurts\nHCP: where exactly\nPatient: front of knee, below the kneecap\nHCP: how long\nPatient: started yesterday after gardening\nHCP: any swelling\nPatient: a little bit\nHCP: lets check range of motion, extension feels tight\nHCP: flexion okay, no locking\nHCP: likely prepatellar bursitis or early effusion, ice it, ibuprofen 400mg three times daily, elevate leg, return if red or hot",
+  "soap": {
+    "subjective": {
+      "chief_complaint": {
+        "text": "knee hurts",
+        "evidence_span": "knee hurts"
+      },
+      "hpi": {
+        "text": "front of knee below kneecap, started yesterday after gardening, a little bit of swelling",
+        "evidence_span": "front of knee, below the kneecap\nHCP: how long\nPatient: started yesterday after gardening\nHCP: any swelling\nPatient: a little bit"
+      },
+      "pmh": [],
+      "meds": [],
+      "allergies": []
+    },
+    "objective": {
+      "exam": {
+        "text": "extension feels tight, flexion okay, no locking",
+        "evidence_span": "extension feels tight\nHCP: flexion okay, no locking"
+      }
+    },
+    "assessment": {
+      "problems": [
+        {
+          "name": "prepatellar bursitis or early effusion",
+          "evidence_span": "likely prepatellar bursitis or early effusion"
+        }
+      ]
+    },
+    "plan": {
+      "items": [
+        {
+          "action": "ice leg",
+          "evidence_span": "ice it"
+        },
+        {
+          "action": "ibuprofen 400mg three times daily",
+          "evidence_span": "ibuprofen 400mg three times daily"
+        },
+        {
+          "action": "elevate leg",
+          "evidence_span": "elevate leg"
+        },
+        {
+          "action": "return if red or hot",
+          "evidence_span": "return if red or hot"
+        }
+      ]
+    }
+  }
+}

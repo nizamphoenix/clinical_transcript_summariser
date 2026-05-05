@@ -1,0 +1,41 @@
+{
+  "spec": {
+    "template": "referral_b",
+    "length": "short",
+    "length_desc": "5-8 turns total, focused single-issue visit",
+    "issues": 1,
+    "style": "conversational",
+    "fillers": "medium"
+  },
+  "transcript": "HCP: so i want to discuss your knee pain before the physio\nPatient: yeah it's been really bad for ages\nHCP: you've had a twist injury a few months back right?\nPatient: yeah it happened at the gym\nHCP: and since then you've been on panadol but it's not settling\nPatient: no it's worse now when i go up stairs\nHCP: that sounds like significant swelling and instability\nPatient: exactly and i'm worried about the cartilage\nHCP: i think we need to refer you to an Orthopaedic surgeon\nPatient: ok is it an emergency\nHCP: no not urgent but you need an MRI to check the meniscus\nPatient: right i'll wait for the letter then\nHCP: correct i'll send it to Orthopaedics and ask for a knee assessment\nPatient: thanks doctor",
+  "referral": {
+    "specialty": {
+      "text": "Orthopaedics",
+      "evidence_span": "refer you to an Orthopaedic surgeon"
+    },
+    "patient": {
+      "text": null,
+      "evidence_span": null
+    },
+    "reason": {
+      "text": "knee pain following twist injury",
+      "evidence_span": "knee pain before the physio"
+    },
+    "history": [
+      {
+        "text": "twist injury at gym a few months ago",
+        "evidence_span": "you've had a twist injury a few months back right?"
+      }
+    ],
+    "current_meds": [
+      {
+        "text": "panadol",
+        "evidence_span": "been on panadol"
+      }
+    ],
+    "request": {
+      "text": "knee assessment and MRI",
+      "evidence_span": "ask for a knee assessment"
+    }
+  }
+}

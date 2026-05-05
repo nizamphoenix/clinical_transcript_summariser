@@ -1,0 +1,45 @@
+{
+  "spec": {
+    "template": "referral_b",
+    "length": "medium",
+    "length_desc": "10-15 turns total, includes history-taking and exam",
+    "issues": 1,
+    "style": "warm",
+    "fillers": "medium"
+  },
+  "transcript": "HCP: good morning, how are you feeling today?\nPatient: hi doctor, actually a bit tired and my knee is really bothering me\nHCP: i see, and when did this start?\nPatient: maybe two weeks ago, i was walking to the shops and it just gave out on me\nHCP: that sounds frustrating, let me check your medical notes\nPatient: sure, thanks\nHCP: right, so you have a bit of asthma and use ventolin occasionally\nPatient: yes, just for the dust or when i get a cold\nHCP: ok, and regarding the knee, does it hurt when you climb stairs?\nPatient: yes definitely, especially going up, and it feels a bit swollen too\nHCP: i understand, let me look at it, yes there is some redness and warmth\nPatient: oh that's not good\nHCP: not ideal, we need to rule out a tear or inflammation\nPatient: i'm worried i might need surgery\nHCP: don't worry yet, i think we should get a second opinion first\nPatient: that would be nice, who do you think?\nHCP: i'd like to refer you to Orthopaedics for a proper assessment\nPatient: great, thanks doctor\nHCP: i will send the letter today, they'll call you back soon\nPatient: excellent, thank you so much",
+  "referral": {
+    "specialty": {
+      "text": "Orthopaedics",
+      "evidence_span": "refer you to Orthopaedics"
+    },
+    "patient": {
+      "text": null,
+      "evidence_span": null
+    },
+    "reason": {
+      "text": "knee pain and swelling for 2 weeks",
+      "evidence_span": "knee is really bothering me"
+    },
+    "history": [
+      {
+        "text": "asthma",
+        "evidence_span": "you have a bit of asthma"
+      },
+      {
+        "text": "knee pain on stairs",
+        "evidence_span": "does it hurt when you climb stairs"
+      }
+    ],
+    "current_meds": [
+      {
+        "text": "ventolin",
+        "evidence_span": "use ventolin occasionally"
+      }
+    ],
+    "request": {
+      "text": "proper assessment",
+      "evidence_span": "refer you to Orthopaedics for a proper assessment"
+    }
+  }
+}

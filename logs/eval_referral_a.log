@@ -1,0 +1,15 @@
+Bulk generating: target=10 template=referral_a model=qwen3.5:latest seed=0 split=eval_in_dist
+  [1/10] ok 40.6s (fail=0, eta=6min)
+  [2/10] ok 26.4s (fail=0, eta=4min)
+  [3/10] ok 27.1s (fail=0, eta=4min)
+  [4/10] ok 27.1s (fail=0, eta=3min)
+  [4/10] FAIL ungrounded_span: not in transcript: "I'll refer you to Physio for a full movement assessment" (190.2s, fail=1)
+  [5/10] ok 68.6s (fail=1, eta=6min)
+  [6/10] ok 24.6s (fail=1, eta=4min)
+  [6/10] FAIL ungrounded_span: not in transcript: 'referring you to Orthopaedics for your right knee pain' (158.5s, fail=2)
+  [7/10] ok 28.5s (fail=2, eta=4min)
+  [8/10] ok 78.3s (fail=2, eta=3min)
+  [9/10] ok 76.7s (fail=2, eta=1min)
+  [10/10] ok 54.0s (fail=2, eta=0min)
+
+Done. 10/10 valid, 2 discarded. Output: data/qwen3.5_latest/eval_in_dist.referral_a.jsonl
