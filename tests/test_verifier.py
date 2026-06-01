@@ -94,6 +94,16 @@ HALLUCINATED_SOAP["subjective"]["chief_complaint"]["evidence_span"] = (
     "invented phrase xyz"
 )
 
+# A prediction where gold-null fields (meds, allergies) are filled with invented text.
+# schema_valid stays 1 because shape is correct; spans are grounded.
+OVER_POPULATED_SOAP = json.loads(json.dumps(PERFECT_SOAP))  # deep copy
+OVER_POPULATED_SOAP["subjective"]["meds"] = [
+    {"text": "aspirin 100mg daily", "evidence_span": "aspirin 100mg daily"}
+]
+OVER_POPULATED_SOAP["subjective"]["allergies"] = [
+    {"text": "penicillin", "evidence_span": "penicillin"}
+]
+
 # A prediction missing the 'plan' top-level key — schema invalid.
 SCHEMA_INVALID_SOAP = {
     "subjective": PERFECT_SOAP["subjective"],
@@ -233,7 +243,14 @@ def test_score_prediction_unparseable():
 
 
 def _make_score(
-    schema_valid, content_ov, wrong_null, gold_filled, grounded, total_spans
+    schema_valid,
+    content_ov,
+    wrong_null,
+    gold_filled,
+    grounded,
+    total_spans,
+    over_populated=0,
+    gold_null=1,
 ):
     return {
         "schema_valid": schema_valid,
@@ -242,6 +259,8 @@ def _make_score(
         "gold_filled": gold_filled,
         "grounded_spans": grounded,
         "total_spans": total_spans,
+        "over_populated": over_populated,
+        "gold_null": gold_null,
     }
 
 
@@ -270,3 +289,33 @@ def test_reward_ordering():
     invalid = reward(_make_score(0, 0.9, 0, 5, 5, 5))
 
     assert perfect > partial > all_null > invalid
+
+
+def test_reward_over_populated_penalised():
+    """perfect > miss > hallucination_via_over_populate > schema_invalid"""
+    # Perfect: high overlap, no misses, no over-population, all grounded.
+    perfect = reward(
+        _make_score(1, 1.0, 0, 5, 5, 5, over_populated=0, gold_null=3)
+    )
+    # Miss: moderate overlap, 1 wrong_null, no over-population.
+    miss = reward(
+        _make_score(1, 0.6, 1, 5, 5, 5, over_populated=0, gold_null=3)
+    )
+    # Over-populated: same overlap as miss but fills 3 gold-null fields.
+    over_pop = reward(
+        _make_score(1, 0.6, 0, 5, 5, 5, over_populated=3, gold_null=3)
+    )
+    # Schema invalid: hard gate.
+    invalid = reward(_make_score(0, 0.9, 0, 5, 5, 5))
+
+    assert perfect > miss
+    assert miss > over_pop
+    assert over_pop > invalid
+
+
+def test_null_classification_over_populated():
+    """Fields gold left empty but pred fills should count as over_populated."""
+    # OVER_POPULATED_SOAP fills meds/allergies which are empty lists in gold (PERFECT_SOAP).
+    # Empty lists contribute no leaves, so over_populated comes from extra pred leaves only.
+    stats = null_classification(OVER_POPULATED_SOAP, PERFECT_SOAP)
+    assert stats["over_populated"] > 0

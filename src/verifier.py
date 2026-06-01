@@ -208,17 +208,23 @@ def reward(score: dict) -> float:
     schema_valid is a hard gate: any schema-invalid output scores -1.0.
     Among valid outputs:
         reward = content_overlap
-                 - 0.5 * wrong_null_rate
-                 - 0.5 * ungrounded_span_rate
+                 - 0.5 * wrong_null_rate       (Problem 2a: content miss)
+                 - 0.5 * ungrounded_span_rate   (Problem 2b: hallucinated spans)
+                 - 0.5 * over_populated_rate    (Problem 2b: filling gold-null fields)
     """
     if not score["schema_valid"]:
         return -1.0
     gold_filled = score.get("gold_filled") or 1
+    gold_null = score.get("gold_null") or 1
     total_spans = score.get("total_spans", 0)
     wrong_null_rate = score["wrong_null"] / gold_filled
     ungrounded_rate = (
         (1.0 - score["grounded_spans"] / total_spans) if total_spans else 0.0
     )
+    over_populated_rate = score.get("over_populated", 0) / gold_null
     return (
-        score["content_overlap"] - 0.5 * wrong_null_rate - 0.5 * ungrounded_rate
+        score["content_overlap"]
+        - 0.5 * wrong_null_rate
+        - 0.5 * ungrounded_rate
+        - 0.5 * over_populated_rate
     )
