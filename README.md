@@ -1,5 +1,23 @@
 # Clinical Transcript Summariser
 
+## Table of Contents
+
+- [Executive Summary](#executive-summary)
+- [What this is and what it is not](#what-this-is-and-what-it-is-not)
+- [The task in plain terms](#the-task-in-plain-terms)
+- [Architectural overview](#architectural-overview)
+- [Where the work runs: two machines, two jobs](#where-the-work-runs-two-machines-two-jobs)
+- [How a single prediction is produced ?](#how-a-single-prediction-is-produced-)
+- [Data Generation](#data-generation-synthetic-validated-and-stratified)
+- [Quick Definitions](#quick-definitions)
+- [Experimental Journey](#experimental-journey)
+- [Results Summary](#results-summary)
+- [DPO Error Analysis](#dpo-error-analysis-the-good-the-bad-and-the-over-optimised)
+- [Future Direction](#future-direction)
+- [A note on production serving](#a-note-on-production-serving)
+- [Repo Structure](#repo-structure)
+- [Quickstart](#quickstart)
+
 ## Executive Summary
 
 This project explores whether a small 3B (Qwen2.5-3B) parameter model can
@@ -31,7 +49,7 @@ Core technologies:
 - Synthetic data generation
 - Reward engineering
 
-## 2. What this is and what it is not
+## What this is and what it is not
 
 This repository was put together to demonstrate clinical template-aware
 extraction with a small model, and to explore the limits of supervised
@@ -220,10 +238,37 @@ split is roughly 50 train examples per trained template, 10 in-distribution eval
 examples per template, and held-out zero-shot eval sets for `referral_b` and
 `mse`, plus the generated `dpo_pairs.jsonl` used for preference training.
 
-## Experimental Journey: v1 --> v2 --> v2.1 --> v3
+## Quick Definitions
 
-The project is a sequence of experiments, each one designed to answer the
-question the previous one raised. Here is the whole arc.
+### SFT (Supervised Fine-Tuning), teaches the shape of the answer.
+
+- What it solves: getting the model to produce outputs that look like your gold
+  examples. Format, vocabulary, schema structure, domain phrasing.
+- How: show input → gold output pairs. Loss = "how different was the model's
+  next-token prediction from the gold token?" Updates weights to close that gap.
+
+### DPO (Direct Preference Optimisation), teaches which output is better when two are plausible.
+
+- What it solves: behavioural preferences between similar-looking outputs.
+  "Populate when grounded, abstain when not." "Don't hallucinate when
+  uncertain." "Prefer concise over verbose."
+- How: show input → (chosen, rejected) pairs. Loss pushes chosen up, rejected
+  down, relative to a frozen reference copy of the model.
+
+### GRPO (Group Relative Policy Optimisation), teaches the model to maximise a numerical reward online.
+
+- What it solves: same behavioural problems as DPO, but with a decomposable
+  reward you can tune. e.g. trade off schema validity vs grounding vs coverage
+  explicitly.
+- How: at each step, sample N outputs for the same prompt, score each with a
+  reward function, update weights to favour the higher-scoring ones within that
+  group. No separate reward model needed if your reward is programmatic (ours
+  is, it's the verifier)
+
+## Experimental Journey
+
+The project is a sequence of experiments (v1 --> v2 --> v2.1 --> v3), each one
+designed to answer the question the previous one raised.
 
 ```mermaid
 flowchart LR
@@ -246,33 +291,6 @@ flowchart LR
 
     P2 --> V3
 ```
-
-### Quick definitions.
-
-#### SFT (Supervised Fine-Tuning), teaches the shape of the answer.
-
-- What it solves: getting the model to produce outputs that look like your gold
-  examples. Format, vocabulary, schema structure, domain phrasing.
-- How: show input → gold output pairs. Loss = "how different was the model's
-  next-token prediction from the gold token?" Updates weights to close that gap.
-
-#### DPO (Direct Preference Optimisation), teaches which output is better when two are plausible.
-
-- What it solves: behavioural preferences between similar-looking outputs.
-  "Populate when grounded, abstain when not." "Don't hallucinate when
-  uncertain." "Prefer concise over verbose."
-- How: show input → (chosen, rejected) pairs. Loss pushes chosen up, rejected
-  down, relative to a frozen reference copy of the model.
-
-#### GRPO (Group Relative Policy Optimisation), teaches the model to maximise a numerical reward online.
-
-- What it solves: same behavioural problems as DPO, but with a decomposable
-  reward you can tune. e.g. trade off schema validity vs grounding vs coverage
-  explicitly.
-- How: at each step, sample N outputs for the same prompt, score each with a
-  reward function, update weights to favour the higher-scoring ones within that
-  group. No separate reward model needed if your reward is programmatic (ours
-  is, it's the verifier)
 
 ### v1: SOAP-only SFT (the baseline)
 
@@ -414,7 +432,7 @@ model. The pairs are ranked by the verifier (see the next section). So the model
 is being taught, directly, "populate when the evidence is there, do not invent,
 prefer the grounded answer".
 
-## Results Summary:
+## Results Summary
 
 | Experiment               | Goal                            | Outcome            |
 | ------------------------ | ------------------------------- | ------------------ |
@@ -481,7 +499,7 @@ longest transcripts, and cutting the epochs from four to two cut the SOAP
 collapses from three in ten down to one in ten and let the genuine `referral_a`
 gain show through.
 
-## Future Directions
+## Future Direction
 
 This demo intentionally stops at one SFT pipeline and one DPO run. That was
 enough to show the core idea, that a verifier which scores extractions can also
@@ -562,7 +580,7 @@ single-request latency and a small footprint, which suits an interactive scribe.
 vLLM with continuous batching wins when you are throughput-bound across many
 concurrent requests.
 
-## Repository map
+## Repo Structure
 
 ```
 src/
