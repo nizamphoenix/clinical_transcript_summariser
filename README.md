@@ -292,6 +292,13 @@ examples per template, and held-out zero-shot eval sets for `referral_b` and
 - Weakness: expensive (N rollouts per prompt), unstable, prone to reward
   hacking. Needs careful reward design.
 
+## One-line summary
+
+- SFT teaches the model what an answer looks like.
+- DPO teaches the model which of two answers is better.
+- GRPO teaches the model how to maximise a quality score it can compute.
+- **None of them** teach the model a new ontology it has never seen.
+
 ## The progression: v1, then v2, then v2.1, then v3
 
 The project is a sequence of experiments, each one designed to answer the
@@ -490,6 +497,63 @@ To be clear about the boundary: neither DPO nor GRPO fixes Problem 1. An unseen
 ontology is a data-coverage problem, and the fix for that is supervision (or
 constrained decoding), not preference learning.
 
+## Future work (and what this demo deliberately left out)
+
+This demo stops at one SFT pipeline and one DPO run. That was enough to show the
+core idea: a verifier that scores extractions can also train the model. There
+are other approaches that could be tried,
+
+### Add more data, both more examples and more templates
+
+There are two separate ways to add data, and they fix different things.
+
+- **More examples of the templates we already train on.** Each trained template
+  here has only about 50 examples. That is enough to learn the format but thin
+  for the content. Adding more examples of `soap`, `referral_a`, and `mse` would
+  most likely reduce the misses (fields the model should have filled but left
+  blank) without any change to the method.
+- **More templates.** Adding new formats such as a discharge summary or a
+  progress note would test whether the approach really generalises, instead of
+  just working on the three templates it has seen.
+
+Both are cheap. They cost some data-generation and training time, not new
+research. That is exactly why they come before any heavier method.
+
+### Try the heavier alignment methods we set up but did not run
+
+The project already explains DPO's limits and why GRPO is the principled next
+step, but GRPO itself was not run here. Running it, and the regularised
+on-policy DPO step described above, is the obvious continuation once more data
+is in place.
+
+### Reinforcement learning for tool calls
+
+A real clinical scribe does not only write JSON. It also takes actions: saving a
+note into the patient record, coding a diagnosis to a standard like *SNOMED* or
+*ICD*, drafting a referral, ordering a lab test. Each of those is a tool call,
+and tool calls are a natural fit for the same verifier-as-reward idea used here,
+because you can check whether a tool call was correct.
+
+The reward would break down into simple, checkable parts, and most of the
+checking already exists in this repo:
+
+- **Right tool:** did the model choose the correct action for the situation.
+- **Valid arguments:** are the arguments well-formed for that tool. This is a
+  hard pass-or-fail gate, the same as the `schema_valid` gate in the current
+  verifier. A malformed call is useless no matter how good the intent.
+- **Grounded arguments:** do the argument values actually come from the
+  transcript word for word. This reuses the existing span-grounding check
+  unchanged, so a referral reason or a coded symptom has to be backed by
+  something the patient or clinician actually said.
+- **It ran:** did the call execute without error against the tool, or a stand-in
+  for it. A clear, hard-to-fake signal.
+
+With that reward, GRPO works the same way as described above, just scoring
+actions instead of fields. The model proposes candidate tool calls, the verifier
+scores each one, and training nudges the model toward calls that are
+well-formed, grounded, and correct. This was not built for the demo, but it is
+the same idea pointed at what the model does, not just what it writes.
+
 ## A note on production serving (design, not code)
 
 Although this repo does not serve anything, the inference stack chosen here is
@@ -510,7 +574,7 @@ src/
 ├── prompts.py
 │   └── build_inference_messages (inference prompt)
 ├── verifier.py
-│   └── verifier (eval metric + DPO reward; core contribution)
+│   └── verifier (eval metric + DPO reward, core contribution)
 └── data_generation/
     ├── generate.py
     │   └── generate one validated synthetic sample
@@ -556,16 +620,3 @@ Root files/
 ├── pyproject.toml
 └── mise.toml
 ```
-
-## One-paragraph summary
-
-- SFT teaches the model what an answer looks like. i.e. shape of clinical
-  extraction across multiple templates. But cannot fix subtle behavioural
-  mistakes (missing real content, inventing spans) because its loss never sees
-  schema validity or evidence grounding.
-- DPO teaches the model which of two answers is better. The experiments show
-  that it works in moderation and over-optimises when trained too long, which is
-  the known offline-DPO signature and the reason GRPO
-- GRPO teaches the model how to maximise a quality score it can compute.
-- **None of them** teach the model a new ontology it has never seen. That's
-  still a data-coverage problem.
