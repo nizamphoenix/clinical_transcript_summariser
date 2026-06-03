@@ -507,28 +507,54 @@ concurrent requests.
 
 ```
 src/
-  prompts.py                      build_inference_messages, the inference prompt
-  verifier.py                     the verifier: eval metric AND DPO reward (core contribution)
-  data_generation/
-    generate.py                   generate one validated synthetic sample
-    validate.py                   strict schema + verbatim-span validation gate
-    stratify.py                   stratification specs for variety
-    templates/                    registry of templates (schema spec + gen prompt + one-shot per template)
+├── prompts.py
+│   └── build_inference_messages (inference prompt)
+├── verifier.py
+│   └── verifier (eval metric + DPO reward; core contribution)
+└── data_generation/
+    ├── generate.py
+    │   └── generate one validated synthetic sample
+    ├── validate.py
+    │   └── strict schema + verbatim-span validation gate
+    ├── stratify.py
+    │   └── stratification specs for variety
+    └── templates/
+        └── registry of templates
+            ├── schema spec
+            ├── generation prompt
+            └── one-shot example per template
 
-scripts/                          helpers for data generation and smoke testing the model locally
+scripts/
+└── helpers for data generation and local smoke testing
+
 notebooks/
-  v1_soap_sft_baseline.ipynb                     v1 SFT run, SOAP-only baseline
-  v2-multitemplate-sft-*.ipynb                   v2 SFT run, two templates (SOAP + referral_a)
-  v2.1-multitemplate-sft-*.ipynb                 v2.1 SFT run, three templates (SOAP + referral_a + MSE)
-  v3_dpo_pair_gen.ipynb                          generate DPO preference pairs via the verifier
-  v3_dpo_train.ipynb                             DPO training on the generated pairs
-  demo_v1_v2_v2.1_v3_problems_local_gguf_2_epochs_210pairs.ipynb      (mixed/partial success)
-  demo_v1_v2_v2.1_v3_problems_local_gguf_4_epochs_213pairs.ipynb      (over-optimisation failure)
+├── v1_soap_sft_baseline.ipynb
+│   └── v1 SFT run, SOAP-only baseline
+├── v2-multitemplate-sft-*.ipynb
+│   └── v2 SFT run, SOAP + referral_a
+├── v2.1-multitemplate-sft-*.ipynb
+│   └── v2.1 SFT run, SOAP + referral_a + MSE
+├── v3_dpo_pair_gen.ipynb
+│   └── generate DPO preference pairs via the verifier
+├── v3_dpo_train.ipynb
+│   └── DPO training on the generated pairs
+├── demo_v1_v2_v2.1_v3_problems_local_gguf_2_epochs_210pairs.ipynb
+│   └── mixed/partial success
+└── demo_v1_v2_v2.1_v3_problems_local_gguf_4_epochs_213pairs.ipynb
+    └── over-optimisation failure
 
+data/qwen3.5_latest/
+├── synthetic datasets
+└── dpo_pairs.jsonl (committed for demo purposes)
 
-data/qwen3.5_latest/             synthetic datasets and dpo_pairs.jsonl (commited to the repo for demo sake)
-tests/test_verifier.py           22 unit tests for the verifier
-Makefile, pyproject.toml, mise.toml   setup tooling and dependencies
+tests/
+└── test_verifier.py
+    └── 22 unit tests for the verifier
+
+Root files/
+├── Makefile
+├── pyproject.toml
+└── mise.toml
 ```
 
 ## One-paragraph summary
