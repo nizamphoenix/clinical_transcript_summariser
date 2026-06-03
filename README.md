@@ -515,7 +515,7 @@ src/
     stratify.py                   stratification specs for variety
     templates/                    registry of templates (schema spec + gen prompt + one-shot per template)
 
-
+scripts/                          helpers for data generation and smoke testing the model locally
 notebooks/
   v1_soap_sft_baseline.ipynb                     v1 SFT run, SOAP-only baseline
   v2-multitemplate-sft-*.ipynb                   v2 SFT run, two templates (SOAP + referral_a)
