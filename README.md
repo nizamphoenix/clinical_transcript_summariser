@@ -505,20 +505,18 @@ src/
       soap.py  referral.py  mse.py   schema spec + gen prompt + one-shot per template
 
 notebooks/
-  v1_soap_sft_baseline.ipynb                     v1 SFT (Kaggle)
-  v2-multitemplate-sft-*.ipynb / .md             v2 SFT run, output, and detailed report
-  v2.1-multitemplate-sft-*.ipynb                 v2.1 SFT run output
+  v1_soap_sft_baseline.ipynb                     v1 SFT run, SOAP-only baseline
+  v2-multitemplate-sft-*.ipynb.                  v2 SFT run, two templates (SOAP + referral_a)
+  v2.1-multitemplate-sft-*.ipynb                 v2.1 SFT run, three templates (SOAP + referral_a + MSE)
   v3_dpo_pair_gen.ipynb                          generate DPO preference pairs via the verifier
-  v3-dpo-train.ipynb                             DPO training (Kaggle)
-  demo_v1_v2_v2.1_problems_local_gguf.ipynb      local demo through v2.1
-  demo_..._v3_..._2_epochs_210pairs.ipynb        SUBMITTED DPO demo (mixed/partial success)
-  demo_..._v3_..._4_epochs_213pairs.ipynb        comparison DPO demo (over-optimisation)
+  v3-dpo-train.ipynb                             DPO training on the generated pairs
+  demo_v1_v2_v2.1_v3_problems_local_gguf_2_epochs_210pairs.ipynb      (mixed/partial success)
+  demo_v1_v2_v2.1_v3_problems_local_gguf_4_epochs_213pairs.ipynb     (over-optimisation failure)
 
 models/                  GGUF q4_k_m files for each stage (v1, v2, v2.1, v3)
 data/qwen3.5_latest/     synthetic datasets and dpo_pairs.jsonl (gitignored)
 tests/test_verifier.py   22 unit tests for the verifier
-Makefile, pyproject.toml, mise.toml   setup tooling
-notes/INTERVIEW.md       production serving design notes (separate from this PoC)
+Makefile, pyproject.toml, mise.toml   setup tooling and dependencies
 ```
 
 ## One-paragraph summary
@@ -531,5 +529,5 @@ notes/INTERVIEW.md       production serving design notes (separate from this PoC
   that it works in moderation and over-optimises when trained too long, which is
   the known offline-DPO signature and the reason GRPO
 - GRPO teaches the model how to maximise a quality score it can compute.
-- **None of them** teach the model a new ontology it has never seen — that's
-  still a data-coverage problem (Problem 1).
+- **None of them** teach the model a new ontology it has never seen. That's
+  still a data-coverage problem.
