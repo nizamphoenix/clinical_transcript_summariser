@@ -1,11 +1,37 @@
 # Clinical Transcript Summariser
 
-This is a small research project that fine-tunes(SFT) and preference-aligns
-(DPO) a Qwen 2.5 3B instruction model to turn a raw clinical consultation
-transcript into structured JSON, across several different output templates, with
-every extracted value backed by a verbatim quote from the transcript.
+## Executive Summary
 
-## What this is and what it is not
+This project explores whether a small 3B (Qwen2.5-3B) parameter model can
+extract structured clinical information from consultation transcripts across
+multiple template formats.
+
+The work progressed through:
+
+1. SFT on synthetic clinical extraction datasets
+2. Multi-template generalisation experiments
+3. DPO preference alignment using a custom verifier
+4. Analysis of where SFT fails and where preference optimisation helps
+
+Key findings:
+
+- SFT learns output structure well but struggles with unseen ontologies
+- DPO improves grounded extraction behaviour on trained templates
+- DPO does not create knowledge for unseen schemas
+- Excessive DPO training causes output collapse
+- A custom verifier can serve as both evaluation metric and alignment reward
+
+Core technologies:
+
+- Qwen2.5-3B Instruct (for SFT and DPO fine-tuning)
+- Qwen3.5-latest (for data generation)
+- Unsloth / LoRA
+- DPO
+- GGUF / llama.cpp
+- Synthetic data generation
+- Reward engineering
+
+## 2. What this is and what it is not
 
 This repository was put together to demonstrate clinical template-aware
 extraction with a small model, and to explore the limits of supervised
@@ -13,47 +39,20 @@ fine-tuning (SFT) and the potential of preference-based alignment (DPO) to fix
 the behavioural problems SFT cannot. The core contributions are:
 
 1. Building a supervised fine-tuning (SFT) pipeline for a real, messy,
-   multi-template extraction task, and being honest about where it breaks.
+   multi-template extraction task, and flagging where it breaks.
 2. Going past SFT into preference-based alignment (DPO now, GRPO as the planned
    next step), driven by a custom verifier that doubles as both the evaluation
    metric and the training reward.
 
 It is **not** a production system. Most of the real work lives in notebooks,
 because the GPU training runs on Kaggle and the inference experiments run
-locally on a laptop. There is clean library code under `src/` for the parts that
-need to be tested and reused (data generation, prompts, the verifier), but the
-orchestration is notebook-driven on purpose. Nothing here is wired up for
-serving, scaling, or monitoring. Where production concerns come up, they are
-described as design notes, not as running code.
-
-The results are reported as they actually came out. Some experiments worked,
-some half worked, and one over-trained run nearly failed. All of that is left
-in, because the point of the exercise is the reasoning and the measurement, not
-a polished number.
-
-## Two different models, do not confuse!
-
-This project uses **two separate models for two separate jobs**,
-
-- **Synthetic data generation (the teacher):** `qwen3.5:latest`, run locally on
-  Apple M2 pro through Ollama. This is the larger model that writes the training
-  and eval data. It is the source of the folder name `data/qwen3.5_latest/`.
-- **The model we actually fine-tune (the student):**
-  `unsloth/Qwen2.5-3B-Instruct`, that is **Qwen 2.5, 3 billion parameters,
-  Instruct**. Every trained model in this project (the v1, v2, v2.1 SFT runs and
-  the v3 DPO run) starts from this same Qwen 2.5 3B base. DPO is run on top of
-  the merged v2.1 SFT checkpoint, so it is Qwen 2.5 as well.
-
-Please note: the trained model files are named like
-`v1_qwen3b-soap-q4_k_m.gguf`. The `qwen3b` there means **Qwen, 3B parameters**.
-It does **not** mean "Qwen 3". The base is Qwen 2.5. So the short version is:
-**Qwen 3.5 generates the data, Qwen 2.5 (3B) is trained on that data.**
+locally on a Apple M2 Pro.
 
 ## The task in plain terms
 
 A clinician talks to a patient. We have a text transcript of that conversation.
-Different downstream uses want that same conversation written up in different
-shapes:
+Different clinicians use different templates to summarise the conversation. For
+this PoC, we focus on three templates:
 
 - A **SOAP** note (Subjective, Objective, Assessment, Plan), the standard GP
   format.
@@ -63,64 +62,59 @@ shapes:
 
 Each of these is a different JSON schema. The model is told at inference time
 which schema to fill in, and it has to extract the right content into the right
-fields. On top of that, every leaf value must carry an `evidence_span`, which is
-a piece of text copied word for word from the transcript that justifies the
-value. That grounding requirement is what makes the task clinical rather than
-generic summarisation. If the model writes down a diagnosis, we want to point at
-the exact words in the conversation that support it.
+fields. In addition, it must carry an `evidence_span`, which is a piece of text
+from the transcript that justifies the value. This grounding requirement is what
+makes the extraction reliable. **If the model writes down a diagnosis, we want
+to point at the exact words in the conversation that support it.**
 
 The hard instruction baked into the prompt is: use `null` for any field the
-transcript does not mention. That keeps the model from inventing content. As you
-will see later, it is a double-edged sword, because `null` is also a very safe
-place to hide when the model is unsure.
+transcript does not mention. That keeps the model from hallucinating. We will
+see later, it is a double-edged sword, because `null` is also a very safe place
+to hide when the model is unsure.
 
-## Quickstart
+## Architectural overview
 
-Tooling is managed with `mise` (for pinned binaries like Python and `uv`) and
-`uv` (for the Python environment).
+```mermaid
+flowchart TD
 
-Install `mise`:
+    T[Qwen 3.5  Model]
+    D[Synthetic Clinical Data Generation]
+    V[Schema + Evidence Validation]
+    DS[Training & Evaluation Datasets]
 
-```bash
-brew install mise
+    SFT[SFT on Qwen2.5-3B]
+    SFTM[SFT Model]
+
+    PAIR[DPO Pair Generation]
+    DPO[DPO Training]
+    DPOM[DPO Model]
+
+    VER[Custom Verifier]
+
+    EVAL[Evaluation Metrics]
+
+    T --> D
+    D --> V
+    V --> DS
+
+    DS --> SFT
+    SFT --> SFTM
+
+    SFTM --> PAIR
+    PAIR --> DPO
+    DPO --> DPOM
+
+    VER --> PAIR
+    VER --> EVAL
+
+    SFTM --> EVAL
+    DPOM --> EVAL
+
+    VER -. Same scoring function .-> PAIR
+    VER -. Same scoring function .-> EVAL
 ```
 
-Activate it in your shell, or add the eval line to your shell config:
-
-```bash
-mise activate zsh
-```
-
-Install the pinned tools and sync Python versions:
-
-```bash
-mise up
-make sync-py-versions
-```
-
-Set up the local Python environment:
-
-```bash
-make setup-local-env
-```
-
-That target creates `.venv`, installs everything from `pyproject.toml`, and
-installs the pre-commit hooks. Run anything inside the environment with:
-
-```bash
-uv run python <script>.py
-```
-
-Run the verifier tests to confirm the core scoring logic works:
-
-```bash
-uv run pytest tests/test_verifier.py
-```
-
-A few other useful targets: `make install`, `make add-group-deps`,
-`make remove-group-deps`, `make run-pre-commit`.
-
-## Where the work runs: two machines, two jobs
+### Where the work runs: two machines, two jobs
 
 This is the single most important thing to understand about the layout. The
 project is split across two very different environments, and the split is
@@ -144,20 +138,16 @@ deliberate.
 Training needs a GPU, and a free Kaggle T4 is enough for the Qwen 2.5 3B base
 with Unsloth and LoRA.
 
-Inference and evaluation run on an Apple M2 Pro laptop, which has no NVIDIA GPU.
-So the trained model is merged, converted to GGUF, and quantised to `q4_k_m`,
-then run through `llama.cpp`, which uses the Mac's Metal backend. This is the
-same serving stack you would use in production for a latency-bound endpoint,
-just on a laptop instead of a GPU node. The model files for each stage live
-under `models/` (for example `v1_qwen3b-soap-q4_k_m.gguf` and
-`v3_qwen3b-multitemplate_dpo-q4_k_m_2_epochs_210pairs.gguf`).
+Inference and evaluation run on an Apple M2 Pro laptop without a GPU. So the
+trained model is merged, converted to GGUF, and quantised to `q4_k_m`, then run
+through `llama.cpp`, which uses the Mac's Metal backend. This is the same
+serving stack we would use in production for a latency-bound endpoint with GPU
+support. The model files for each stage live under `models/`. Not uploaded due
+to size issue to github. The practical consequence for a reader: the notebooks
+that train are Kaggle notebooks, and the notebooks that evaluate and demo
+`demo_*.ipynb` can be run locally.
 
-The practical consequence for a reader: the notebooks that train are Kaggle
-notebooks, and the notebooks that evaluate and demo are local notebooks. The
-`demo_*` notebooks are the ones that load a GGUF and run the whole story end to
-end on the laptop.
-
-## How a single prediction is produced (control flow)
+### How a single prediction is produced ?
 
 At inference time, the path is short and lives mostly in `src/prompts.py`:
 
@@ -188,7 +178,7 @@ referral, or MSE just by swapping which spec it sees. This is what
 "template-aware" means here. There is one model, and the template is data, not a
 separate trained head.
 
-## The data: synthetic, validated, and stratified
+## Data Generation: synthetic, validated, and stratified
 
 There is no real patient data, for obvious reasons. The training and eval sets
 are synthetic, generated by a larger local model (`qwen3.5:latest` via Ollama,
@@ -230,26 +220,34 @@ split is roughly 50 train examples per trained template, 10 in-distribution eval
 examples per template, and held-out zero-shot eval sets for `referral_b` and
 `mse`, plus the generated `dpo_pairs.jsonl` used for preference training.
 
-## Definitions
+## Experimental Journey: v1 --> v2 --> v2.1 --> v3
 
-- schema_valid (0–1): did the model's output parse as JSON AND contain all
-  required keys with the right nesting? 1 = yes, 0 = no. Averaged over the eval
-  set. So schema 0.0 on v2 MSE means every single MSE output was structurally
-  broken (e.g. missing the appearance.text nesting).
-- key_overlap / overlap (0–1): of the gold keys, how much of the gold content
-  appears in the model's output, measured by generalized token overlap on the
-  values. overlap 0.01 means the populated fields share almost no tokens with
-  gold, i.e. the model emitted near-empty values.
-- grounding (0–1): of the spans the model emitted, what fraction are exact
-  substrings of the transcript? 1 = nothing hallucinated, lower = some emitted
-  text isn't in the transcript. Plus two diagnostics:
-- all_null_rate: fraction of outputs where every field is null/empty. v2 MSE was
-  0.6, meaning 60% of outputs were fully collapsed.
-- ungrounded_span_rate (proposed, not yet in harness): fraction of emitted spans
-  not found in transcript. Needed to detect hallucination honestly. "The
-  verifier" is just these metrics packaged as one function: verifier(transcript,
-  schema, output) → {schema_valid, grounding, key_overlap,
-  ungrounded_span_rate}. Same code, two uses:
+The project is a sequence of experiments, each one designed to answer the
+question the previous one raised. Here is the whole arc.
+
+```mermaid
+flowchart LR
+
+    V1[v1<br/>SOAP SFT]
+
+    V2[v2<br/>SOAP + Referral]
+
+    V21[v2.1<br/>Add MSE]
+
+    V3[v3<br/>DPO]
+
+    V1 --> V2
+    V2 --> V21
+    V21 --> V3
+
+    V2 -. discovers .-> P1[Coverage Problem]
+
+    V21 -. exposes .-> P2[Behaviour Problem]
+
+    P2 --> V3
+```
+
+### Quick definitions.
 
 #### SFT (Supervised Fine-Tuning), teaches the shape of the answer.
 
@@ -257,12 +255,6 @@ examples per template, and held-out zero-shot eval sets for `referral_b` and
   examples. Format, vocabulary, schema structure, domain phrasing.
 - How: show input → gold output pairs. Loss = "how different was the model's
   next-token prediction from the gold token?" Updates weights to close that gap.
-- Strength: cheap, stable, the only thing that works when the model has no idea
-  what the task even is. You need SFT to get the model into the right ballpark.
-- Weakness: it can only imitate. It can't tell the model "this output was better
-  than that one" only "this is the one right answer." So it can't fix subtle
-  behavioural problems (collapse, hallucination) and can't optimise a quality
-  signal beyond token match.
 
 #### DPO (Direct Preference Optimisation), teaches which output is better when two are plausible.
 
@@ -270,13 +262,7 @@ examples per template, and held-out zero-shot eval sets for `referral_b` and
   "Populate when grounded, abstain when not." "Don't hallucinate when
   uncertain." "Prefer concise over verbose."
 - How: show input → (chosen, rejected) pairs. Loss pushes chosen up, rejected
-  down, relative to a frozen reference copy of the model (the reference keeps it
-  from drifting too far).
-- Strength: directly optimises the failure mode you care about, without needing
-  a reward model or rollouts. Cheap, close to SFT in tooling.
-- Weakness: needs the model to already roughly do the task, it's polishing, not
-  bootstrapping. And it inherits whatever bias is in your preference pairs (this
-  is your 2b point).
+  down, relative to a frozen reference copy of the model.
 
 #### GRPO (Group Relative Policy Optimisation), teaches the model to maximise a numerical reward online.
 
@@ -286,23 +272,7 @@ examples per template, and held-out zero-shot eval sets for `referral_b` and
 - How: at each step, sample N outputs for the same prompt, score each with a
   reward function, update weights to favour the higher-scoring ones within that
   group. No separate reward model needed if your reward is programmatic (ours
-  is, it's the verifier).
-- Strength: most flexible. You can add/remove reward terms without regenerating
-  a dataset. Current SOTA recipe (DeepSeek-R1-Zero used this).
-- Weakness: expensive (N rollouts per prompt), unstable, prone to reward
-  hacking. Needs careful reward design.
-
-## One-line summary
-
-- SFT teaches the model what an answer looks like.
-- DPO teaches the model which of two answers is better.
-- GRPO teaches the model how to maximise a quality score it can compute.
-- **None of them** teach the model a new ontology it has never seen.
-
-## The progression: v1, then v2, then v2.1, then v3
-
-The project is a sequence of experiments, each one designed to answer the
-question the previous one raised. Here is the whole arc.
+  is, it's the verifier)
 
 ### v1: SOAP-only SFT (the baseline)
 
@@ -361,22 +331,43 @@ to say "this output was better than that other plausible output". To fix Problem
 2 you need a signal that ranks outputs by quality. That is exactly what
 preference learning provides, and it is why the project moves to DPO.
 
-### v3: DPO (Direct Preference Optimisation)
+### Verifier Design: the core and the bridge between evaluation and training
 
-DPO is the natural next step. Instead of one gold answer, you show the model
-pairs of outputs, a `chosen` and a `rejected`, and the loss pushes the chosen
-one up and the rejected one down relative to a frozen reference copy of the
-model. The pairs are ranked by the verifier (see the next section). So the model
-is being taught, directly, "populate when the evidence is there, do not invent,
-prefer the grounded answer".
+The single most important piece of code is `src/verifier.py`. It is used as both
+the evaluation metric and the DPO reward. That dual use is key here. A generic
+language-model evaluator does not know what a clinical evidence span is. This
+one does, because it checks spans against the actual transcript.
 
-## The verifier: one function, used twice (the core contribution)
+```mermaid
+flowchart LR
 
-The single most important piece of code is `src/verifier.py`. It is the same
-function used as both the evaluation metric and the DPO reward. That dual use is
-the whole idea. A generic language-model evaluator does not know what a clinical
-evidence span is. This one does, because it checks spans against the actual
-transcript.
+    P[Model Prediction]
+    V[Verifier]
+
+    P --> V
+
+    V --> M[Evaluation Metrics]
+
+    V --> R[Reward Score]
+
+    R --> DPO[DPO Pair Ranking]
+
+    DPO --> TRAIN[DPO Training]
+
+    subgraph Metrics
+        M1[Schema Validity]
+        M2[Content Overlap]
+        M3[Wrong Nulls]
+        M4[Ungrounded Spans]
+        M5[Over-population]
+    end
+
+    M --> M1
+    M --> M2
+    M --> M3
+    M --> M4
+    M --> M5
+```
 
 `score_prediction(template, raw, gold, transcript)` returns a flat dict of
 terms:
@@ -398,11 +389,13 @@ The same numbers, collapsed into a single scalar, become the DPO reward
 (`reward(score)`):
 
 ```
-if not schema_valid:        reward = -1.0          # hard gate, invalid is always worst
-else:                       reward = content_overlap
-                                   - 0.5 * wrong_null_rate        # punish misses
-                                   - 0.5 * ungrounded_span_rate   # punish hallucinated spans
-                                   - 0.5 * over_populated_rate    # punish filling empty fields
+if not schema_valid:
+    reward = -1.0  # hard gate, invalid is always worst
+else:
+    reward = content_overlap
+            - 0.5 * wrong_null_rate        # punish misses
+            - 0.5 * ungrounded_span_rate   # punish hallucinated spans
+            - 0.5 * over_populated_rate    # punish filling empty fields
 ```
 
 Schema validity is a hard gate, because a structurally broken output is useless
@@ -410,9 +403,29 @@ no matter how good its content looks. Everything else is a graded trade-off
 between covering the real content and not making things up. When generating
 preference pairs, the candidate with the higher reward becomes `chosen` and the
 lower becomes `rejected`. The verifier is the bridge between measuring the model
-and improving it. It is covered by 22 unit tests in `tests/test_verifier.py`.
+and improving it.
 
-## DPO results: the honest version
+### v3: DPO (Direct Preference Optimisation)
+
+DPO is the natural next step. Instead of one gold answer, you show the model
+pairs of outputs, a `chosen` and a `rejected`, and the loss pushes the chosen
+one up and the rejected one down relative to a frozen reference copy of the
+model. The pairs are ranked by the verifier (see the next section). So the model
+is being taught, directly, "populate when the evidence is there, do not invent,
+prefer the grounded answer".
+
+## Results Summary:
+
+| Experiment               | Goal                            | Outcome            |
+| ------------------------ | ------------------------------- | ------------------ |
+| v1 SOAP SFT              | Learn SOAP extraction           | Successful         |
+| v2 Multi-template SFT    | Transfer to referral schema     | Successful         |
+| v2 Multi-template SFT    | Transfer to unseen MSE ontology | Failed             |
+| v2.1 Add MSE supervision | Fix ontology collapse           | Successful         |
+| v3 DPO 2 epochs          | Reduce misses/hallucinations    | Partial success    |
+| v3 DPO 4 epochs          | More optimisation               | Overfit / degraded |
+
+## DPO Error Analysis: the good, the bad, and the over-optimised
 
 Two DPO runs were trained, identical except for how long they trained. The
 comparison is the whole lesson, so both are described, but only the shorter run
@@ -450,31 +463,34 @@ designed to fix, while keeping the damage small:
   hold, which is consistent with Problem 1: DPO cannot create coverage the model
   never had.
 
-So the headline is honest and partial. DPO delivered the targeted improvement on
-the template it was aimed at, at the cost of small regressions elsewhere.
+So, DPO delivered the targeted improvement on the template it was aimed at, at
+the cost of small regressions elsewhere for the toy dataset. Perhaps with more
+resources and data, DPO can fix Problem 2.
 
 ### Why longer training was worse with DPO, and what it means
 
-This is the textbook failure signature of offline DPO. The mechanism is
-likelihood displacement. The rejected examples are collapsed, null-heavy
-outputs. The chosen examples are long, fully-populated outputs. These two
-sequences often share their early tokens. When DPO pushes the rejected
-sequence's likelihood down, it drags the shared early tokens down too, which
-also damages the long chosen sequences. The longer you train, the more this
-compounds, until the longest, richest outputs (the ones with the most shared
-early structure) collapse. That is exactly the pattern observed: the failures
-concentrated on the longest transcripts, and cutting the epochs from four to two
-cut the SOAP collapses from three in ten down to one in ten and let the genuine
-`referral_a` gain show through.
+This is the textbook failure signature of offline DPO due to likelihood
+displacement. The rejected examples are collapsed, null-heavy outputs. The
+chosen examples are long, fully-populated outputs. These two sequences often
+share their early tokens. When DPO pushes the rejected sequence's likelihood
+down, it drags the shared early tokens down too, which also damages the long
+chosen sequences. The longer you train, the more this compounds, until the
+longest, richest outputs (the ones with the most shared early structure)
+collapse. That is exactly the pattern observed: the failures concentrated on the
+longest transcripts, and cutting the epochs from four to two cut the SOAP
+collapses from three in ten down to one in ten and let the genuine `referral_a`
+gain show through.
 
-The lesson is that the training length, not the data, drove the
-over-optimisation. The diagnosis matters more than the number, because it points
-directly at the fix.
+## Future Directions
 
-## What comes next: regularised DPO, then GRPO
+This demo intentionally stops at one SFT pipeline and one DPO run. That was
+enough to show the core idea, that a verifier which scores extractions can also
+train the model. Several clear next steps remain. They are listed below,
 
-The failure above is a property of *offline* DPO specifically. That tells what
-to do next.
+### The direct fix: regularised DPO, then GRPO
+
+The over-optimisation above is a property of *offline* DPO specifically, and
+that points straight at what to do next.
 
 **Cheap fix first: regularised on-policy DPO.** Anchor the chosen likelihood
 with an `rpo_alpha` term (RPO-style) so DPO cannot drag the good sequences down.
@@ -484,24 +500,11 @@ preference pairs from the current policy, not from a stale snapshot.
 
 **Principled successor: GRPO.** GRPO removes the offline problem entirely.
 Instead of a fixed dataset of stale pairs, it samples fresh outputs from the
-current policy for each prompt, scores each one with the same verifier reward (a
-graded scalar, not a binary chosen/rejected), and uses the group-relative
-advantage to update the policy. Because it is on-policy there are no stale pairs
-and no likelihood displacement, and because the reward is decomposable you can
-explicitly trade off schema validity against misses against hallucination by
-tuning the weights. The cost is compute, since we have to generate samples
-inside the training loop. GRPO is the same magic recipe used by
-DeepSeek-R1-Zero. The verifier is already the reward function!
-
-To be clear about the boundary: neither DPO nor GRPO fixes Problem 1. An unseen
-ontology is a data-coverage problem, and the fix for that is supervision (or
-constrained decoding), not preference learning.
-
-## Future work (and what this demo deliberately left out)
-
-This demo stops at one SFT pipeline and one DPO run. That was enough to show the
-core idea: a verifier that scores extractions can also train the model. There
-are other approaches that could be tried,
+current policy for each prompt, scores each one with the same verifier reward,
+and uses the group-relative advantage to update the policy. Since it is
+on-policy there are no stale pairs and no likelihood displacement. The cost is
+compute, since we have to generate samples inside the training loop. It is the
+same magic used by DeepSeek-R1-Zero.
 
 ### Add more data, both more examples and more templates
 
@@ -517,14 +520,7 @@ There are two separate ways to add data, and they fix different things.
   just working on the three templates it has seen.
 
 Both are cheap. They cost some data-generation and training time, not new
-research. That is exactly why they come before any heavier method.
-
-### Try the heavier alignment methods we set up but did not run
-
-The project already explains DPO's limits and why GRPO is the principled next
-step, but GRPO itself was not run here. Running it, and the regularised
-on-policy DPO step described above, is the obvious continuation once more data
-is in place.
+research.
 
 ### Reinforcement learning for tool calls
 
@@ -545,16 +541,15 @@ checking already exists in this repo:
   transcript word for word. This reuses the existing span-grounding check
   unchanged, so a referral reason or a coded symptom has to be backed by
   something the patient or clinician actually said.
-- **It ran:** did the call execute without error against the tool, or a stand-in
-  for it. A clear, hard-to-fake signal.
+- **Successful call :** did the call execute without error against the tool, or
+  a stand-in for it. A clear, hard-to-fake signal.
 
 With that reward, GRPO works the same way as described above, just scoring
 actions instead of fields. The model proposes candidate tool calls, the verifier
 scores each one, and training nudges the model toward calls that are
-well-formed, grounded, and correct. This was not built for the demo, but it is
-the same idea pointed at what the model does, not just what it writes.
+well-formed, grounded, and correct.
 
-## A note on production serving (design, not code)
+## A note on production serving
 
 Although this repo does not serve anything, the inference stack chosen here is
 the production stack for a latency-bound use case. The model is GGUF `q4_k_m`
@@ -620,3 +615,49 @@ Root files/
 ├── pyproject.toml
 └── mise.toml
 ```
+
+## Quickstart
+
+Tooling is managed with `mise` (for pinned binaries like Python and `uv`) and
+`uv` (for the Python environment).
+
+Install `mise`:
+
+```bash
+brew install mise
+```
+
+Activate it in your shell, or add the eval line to your shell config:
+
+```bash
+mise activate zsh
+```
+
+Install the pinned tools and sync Python versions:
+
+```bash
+mise up
+make sync-py-versions
+```
+
+Set up the local Python environment:
+
+```bash
+make setup-local-env
+```
+
+That target creates `.venv`, installs everything from `pyproject.toml`, and
+installs the pre-commit hooks. Run anything inside the environment with:
+
+```bash
+uv run python <script>.py
+```
+
+Run the verifier tests to confirm the core scoring logic works:
+
+```bash
+uv run pytest tests/test_verifier.py
+```
+
+A few other useful targets: `make install`, `make add-group-deps`,
+`make remove-group-deps`, `make run-pre-commit`.
