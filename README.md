@@ -526,7 +526,7 @@ notebooks/
   demo_v1_v2_v2.1_v3_problems_local_gguf_4_epochs_213pairs.ipynb      (over-optimisation failure)
 
 
-data/qwen3.5_latest/             synthetic datasets and dpo_pairs.jsonl (gitignored)
+data/qwen3.5_latest/             synthetic datasets and dpo_pairs.jsonl (commited to the repo for demo sake)
 tests/test_verifier.py           22 unit tests for the verifier
 Makefile, pyproject.toml, mise.toml   setup tooling and dependencies
 ```
