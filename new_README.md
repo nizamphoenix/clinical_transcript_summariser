@@ -10,11 +10,12 @@ nothing about the project, start at the top and keep going. By the end you
 should understand what was built, why each step exists, how training and
 inference are split across machines, and how the results were measured.
 
-## Read this first: what this is and what it is not
+## What this is and what it is not
 
-This repository was put together as a take-home style demonstration for a Senior
-AI Model Engineer application at Heidi Health. The goal was to show two specific
-abilities end to end:
+This repository was put together to demonstrate clinical template-aware
+extraction with a small model, and to explore the limits of supervised
+fine-tuning (SFT) and the potential of preference-based alignment (DPO) to fix
+the behavioural problems SFT cannot. The core contributions are:
 
 1. Building a supervised fine-tuning (SFT) pipeline for a real, messy,
    multi-template extraction task, and being honest about where it breaks.
@@ -216,6 +217,68 @@ split is roughly 50 train examples per trained template, 10 in-distribution eval
 examples per template, and held-out zero-shot eval sets for `referral_b` and
 `mse`, plus the generated `dpo_pairs.jsonl` used for preference training.
 
+## Definitions
+
+- schema_valid (0–1): did the model's output parse as JSON AND contain all
+  required keys with the right nesting? 1 = yes, 0 = no. Averaged over the eval
+  set. So schema 0.0 on v2 MSE means every single MSE output was structurally
+  broken (e.g. missing the appearance.text nesting).
+- key_overlap / overlap (0–1): of the gold keys, how much of the gold content
+  appears in the model's output, measured by generalized token overlap on the
+  values. overlap 0.01 means the populated fields share almost no tokens with
+  gold — i.e. the model emitted near-empty values.
+- grounding (0–1): of the spans the model emitted, what fraction are exact
+  substrings of the transcript? 1 = nothing hallucinated, lower = some emitted
+  text isn't in the transcript. Plus two diagnostics:
+- all_null_rate: fraction of outputs where every field is null/empty. v2 MSE was
+  0.6 — 60% of outputs were fully collapsed.
+- ungrounded_span_rate (proposed, not yet in harness): fraction of emitted spans
+  not found in transcript. Needed to detect hallucination honestly. "The
+  verifier" is just these metrics packaged as one function: verifier(transcript,
+  schema, output) → {schema_valid, grounding, key_overlap,
+  ungrounded_span_rate}. Same code, two uses:
+
+#### SFT (Supervised Fine-Tuning) — teaches the shape of the answer.
+
+- What it solves: getting the model to produce outputs that look like your gold
+  examples. Format, vocabulary, schema structure, domain phrasing.
+- How: show input → gold output pairs. Loss = "how different was the model's
+  next-token prediction from the gold token?" Updates weights to close that gap.
+- Strength: cheap, stable, the only thing that works when the model has no idea
+  what the task even is. You need SFT to get the model into the right ballpark.
+- Weakness: it can only imitate. It can't tell the model "this output was better
+  than that one" only "this is the one right answer." So it can't fix subtle
+  behavioural problems (collapse, hallucination) and can't optimise a quality
+  signal beyond token match.
+
+#### DPO (Direct Preference Optimisation) — teaches which output is better when two are plausible.
+
+- What it solves: behavioural preferences between similar-looking outputs.
+  "Populate when grounded, abstain when not." "Don't hallucinate when
+  uncertain." "Prefer concise over verbose."
+- How: show input → (chosen, rejected) pairs. Loss pushes chosen up, rejected
+  down, relative to a frozen reference copy of the model (the reference keeps it
+  from drifting too far).
+- Strength: directly optimises the failure mode you care about, without needing
+  a reward model or rollouts. Cheap, close to SFT in tooling.
+- Weakness: needs the model to already roughly do the task — it's polishing, not
+  bootstrapping. And it inherits whatever bias is in your preference pairs (this
+  is your 2b point).
+
+#### GRPO (Group Relative Policy Optimisation) — teaches the model to maximise a numerical reward online.
+
+- What it solves: same behavioural problems as DPO, but with a decomposable
+  reward you can tune. e.g. trade off schema validity vs grounding vs coverage
+  explicitly.
+- How: at each step, sample N outputs for the same prompt, score each with a
+  reward function, update weights to favour the higher-scoring ones within that
+  group. No separate reward model needed if your reward is programmatic (ours is
+  — it's the verifier).
+- Strength: most flexible. You can add/remove reward terms without regenerating
+  a dataset. Current SOTA recipe (DeepSeek-R1-Zero used this).
+- Weakness: expensive (N rollouts per prompt), unstable, prone to reward
+  hacking. Needs careful reward design.
+
 ## The progression: v1, then v2, then v2.1, then v3
 
 The project is a sequence of experiments, each one designed to answer the
@@ -370,19 +433,19 @@ designed to fix, while keeping the damage small:
 So the headline is honest and partial. DPO delivered the targeted improvement on
 the template it was aimed at, at the cost of small regressions elsewhere.
 
-### Why longer training was worse, and what it means
+### Why longer training was worse with DPO, and what it means
 
-This is the textbook failure signature of offline DPO, and naming it is the
-point. The mechanism is likelihood displacement. The rejected examples are
-collapsed, null-heavy outputs. The chosen examples are long, fully-populated
-outputs. These two sequences often share their early tokens. When DPO pushes the
-rejected sequence's likelihood down, it drags the shared early tokens down too,
-which also damages the long chosen sequences. The longer you train, the more
-this compounds, until the longest, richest outputs (the ones with the most
-shared early structure) collapse. That is exactly the pattern observed: the
-failures concentrated on the longest transcripts, and cutting the epochs from
-four to two cut the SOAP collapses from three in ten down to one in ten and let
-the genuine `referral_a` gain show through.
+This is the textbook failure signature of offline DPO. The mechanism is
+likelihood displacement. The rejected examples are collapsed, null-heavy
+outputs. The chosen examples are long, fully-populated outputs. These two
+sequences often share their early tokens. When DPO pushes the rejected
+sequence's likelihood down, it drags the shared early tokens down too, which
+also damages the long chosen sequences. The longer you train, the more this
+compounds, until the longest, richest outputs (the ones with the most shared
+early structure) collapse. That is exactly the pattern observed: the failures
+concentrated on the longest transcripts, and cutting the epochs from four to two
+cut the SOAP collapses from three in ten down to one in ten and let the genuine
+`referral_a` gain show through.
 
 The lesson is that the training length, not the data, drove the
 over-optimisation. The diagnosis matters more than the number, because it points
@@ -390,8 +453,8 @@ directly at the fix.
 
 ## What comes next: regularised DPO, then GRPO
 
-The failure above is a property of *offline* DPO specifically. That tells you
-what to do next.
+The failure above is a property of *offline* DPO specifically. That tells what
+to do next.
 
 **Cheap fix first: regularised on-policy DPO.** Anchor the chosen likelihood
 with an `rpo_alpha` term (RPO-style) so DPO cannot drag the good sequences down.
@@ -403,13 +466,12 @@ preference pairs from the current policy, not from a stale snapshot.
 Instead of a fixed dataset of stale pairs, it samples fresh outputs from the
 current policy for each prompt, scores each one with the same verifier reward (a
 graded scalar, not a binary chosen/rejected), and uses the group-relative
-advantage to update the policy, with a KL leash back to the reference to stop
-collapse. Because it is on-policy there are no stale pairs and no likelihood
-displacement, and because the reward is decomposable you can explicitly trade
-off schema validity against misses against hallucination by tuning the weights.
-The cost is compute, since you have to generate samples inside the training
-loop. GRPO is the same recipe family used by DeepSeek-R1-Zero. The verifier is
-already the reward function, so the reward side of GRPO is done.
+advantage to update the policy. Because it is on-policy there are no stale pairs
+and no likelihood displacement, and because the reward is decomposable you can
+explicitly trade off schema validity against misses against hallucination by
+tuning the weights. The cost is compute, since we have to generate samples
+inside the training loop. GRPO is the same magic recipe used by
+DeepSeek-R1-Zero. The verifier is already the reward function!
 
 To be clear about the boundary: neither DPO nor GRPO fixes Problem 1. An unseen
 ontology is a data-coverage problem, and the fix for that is supervision (or
@@ -426,8 +488,7 @@ plus GGUF choice versus something like vLLM is a latency-bound versus
 throughput-bound decision. `llama.cpp` with a quantised model gives low
 single-request latency and a small footprint, which suits an interactive scribe.
 vLLM with continuous batching wins when you are throughput-bound across many
-concurrent requests. Those notes are captured in `notes/INTERVIEW.md`, which
-describes a production system and is separate from this proof of concept.
+concurrent requests.
 
 ## Repository map
 
@@ -462,14 +523,13 @@ notes/INTERVIEW.md       production serving design notes (separate from this PoC
 
 ## One-paragraph summary
 
-SFT teaches a small model the *shape* of clinical extraction across multiple
-templates, and it does that well on trained templates but cannot fix subtle
-behavioural mistakes (missing real content, inventing spans) because its loss
-never sees schema validity or evidence grounding. A custom verifier scores those
-exact properties and is used as both the evaluation metric and the DPO reward,
-which is the central idea. DPO then improves the targeted behavioural failures,
-and the experiments show honestly that it works in moderation and over-optimises
-when trained too long, which is the known offline-DPO signature and the reason
-GRPO is the principled next step. None of this addresses the separate,
-data-bound problem of generalising to a clinical ontology the model has never
-seen.
+- SFT teaches the model what an answer looks like. i.e. shape of clinical
+  extraction across multiple templates. But cannot fix subtle behavioural
+  mistakes (missing real content, inventing spans) because its loss never sees
+  schema validity or evidence grounding.
+- DPO teaches the model which of two answers is better. The experiments show
+  that it works in moderation and over-optimises when trained too long, which is
+  the known offline-DPO signature and the reason GRPO
+- GRPO teaches the model how to maximise a quality score it can compute.
+- **None of them** teach the model a new ontology it has never seen — that's
+  still a data-coverage problem (Problem 1).
